@@ -1,0 +1,13 @@
+html
+  head
+    title My App
+  //- we can pass multiple classes in an array
+  body(class=["MyClass"])
+    //- the title variable passed in to the render function
+    h1(id="MyId")= title
+    p
+      h3 sub header
+    ul
+      //- loop over the list variable passed in to the render function
+      each val in list
+        li= val
