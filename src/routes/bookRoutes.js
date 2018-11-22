@@ -1,52 +1,83 @@
 const express = require('express');
-const bookRouter = express.Router();
-const sql = require('mysql');
-const debug = require('debug')('app:bookRoutes');
+const { MongoClient, ObjectID } = require('mongodb');
 
-const connection = sql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '2604031',
-  database: 'pslibrary'
-});
+const bookRouter = express.Router();
+const debug = require('debug')('app:bookRoutes');
 
 function router(nav) {
   bookRouter.route('/')
     .get((req, res) => {
-      connection.query('SELECT * FROM books', (error, results) => {
-        if (error) {
-          debug(error);
+      const url = 'mongodb://localhost:27017';
+      const dbName = 'libraryApp';
+
+      (async function mongo() {
+        let client;
+
+        try {
+          // waiting for connectin to db server
+          client = await MongoClient.connect(url);
+          debug('Connected correctly to server');
+
+          // use the libraryApp database
+          const db = client.db(dbName);
+
+          // get our collection
+          const col = await db.collection('books');
+          const books = await col.find().toArray();
+
+          res.render(
+            'bookListView',
+            {
+              nav,
+              title: 'Library',
+              books
+            }
+          );
         }
-        res.render('bookListView', {
-          title: 'Library',
-          nav,
-          books: results
-        });
-      });
+        catch (e) {
+          debug(e.stack);
+        }
+
+        client.close();
+      }());
     });
 
   bookRouter.route('/:id')
-    // this is called before each request so we can use it as middleware
-    .all((req, res, next) => {
-      // :id is in req.params.id
-      const id = +req.params.id;
-
-      connection.query('SELECT * FROM books WHERE id = ?', connection.escape(id), (error, results) => {
-        if (error) {
-          debug(error);
-        }
-
-        req.book = results[0]; // eslint-disable-line prefer-destructuring
-
-        next();
-      });
-    })
     .get((req, res) => {
-      res.render('bookView', {
-        title: 'Library',
-        nav,
-        book: req.book
-      });
+      // :id is in req.params.id
+      const { id } = req.params;
+      const url = 'mongodb://localhost:27017';
+      const dbName = 'libraryApp';
+
+      (async function mongo() {
+        let client;
+
+        try {
+          // waiting for connectin to db server
+          client = await MongoClient.connect(url, { useNewUrlParser: true });
+          debug('Connected correctly to server');
+
+          // use the libraryApp database
+          const db = client.db(dbName);
+
+          // get our collection
+          const col = await db.collection('books');
+
+          // query the first result
+          // we can pass in a json object to look for
+          // we cannot just pass an object id because it is an objectID object
+          const book = await col.findOne({ _id: ObjectID(id) });
+
+
+          res.render('bookView', {
+            title: 'Library',
+            nav,
+            book
+          });
+        } catch (e) {
+          debug(e.stack);
+        }
+      }());
     });
   return bookRouter;
 }

@@ -43,8 +43,10 @@ const nav = [
 
 // the router is wrapped in a function that accepts nav as an argument
 const bookRouter = require('./src/routes/bookRoutes')(nav);
+const adminRouter = require('./src/routes/adminRoutes')(nav);
 
 app.use('/books', bookRouter);
+app.use('/admin', adminRouter);
 
 // fire a function when the / url is hit
 app.get('/', (req, res) => {
