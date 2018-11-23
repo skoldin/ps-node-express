@@ -5,6 +5,14 @@ const bookRouter = express.Router();
 const debug = require('debug')('app:bookRoutes');
 
 function router(nav) {
+  // don't allow accessing books if not logged in
+  bookRouter.use((req, res, next) => {
+    if (req.user) {
+      next();
+    } else {
+      res.redirect('/');
+    }
+  });
   bookRouter.route('/')
     .get((req, res) => {
       const url = 'mongodb://localhost:27017';
@@ -33,8 +41,7 @@ function router(nav) {
               books
             }
           );
-        }
-        catch (e) {
+        } catch (e) {
           debug(e.stack);
         }
 

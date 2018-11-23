@@ -4,28 +4,28 @@ const chalk = require('chalk');
 const debug = require('debug')('app');
 const morgan = require('morgan');
 const path = require('path');
-const sql = require('mysql');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
 
 const app = express();
 // the env object stores environment variables that we pass in
 const port = process.env.PORT || 3000;
 
-const connection = sql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '2604031',
-  database: 'pslibrary'
-});
-
-connection.connect(err => debug(err));
-
 app.use(morgan('tiny'));
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(session({ secret: 'library', resave: false, saveUninitialized: false }));
 
 // add a middleware. That is a function that is executed on every request
 // app.use((req, res, next) => {
 //   debug('my middleware');
 //   next();
 // });
+
+require('./src/config/passport.js')(app);
 
 app.use(express.static(path.join(__dirname, 'public')));
 // if our CSS or JS is not in the public folder, next look there
@@ -44,9 +44,11 @@ const nav = [
 // the router is wrapped in a function that accepts nav as an argument
 const bookRouter = require('./src/routes/bookRoutes')(nav);
 const adminRouter = require('./src/routes/adminRoutes')(nav);
+const authRouter = require('./src/routes/authRoutes')(nav);
 
 app.use('/books', bookRouter);
 app.use('/admin', adminRouter);
+app.use('/auth', authRouter);
 
 // fire a function when the / url is hit
 app.get('/', (req, res) => {
@@ -59,7 +61,7 @@ app.get('/', (req, res) => {
   // we can pass in stuff in an object
   res.render('index', {
     title: 'MyLibrary',
-    nav: [{ title: 'Books', link: '/books' }, { title: 'Authors', link: '/authors' }],
+    nav,
   });
 });
 
